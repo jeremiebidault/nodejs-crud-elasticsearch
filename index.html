@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+
+			* {
+				padding: 0;
+				margin: 0;
+				box-sizing: border-box;
+				font-family: Helvetica, Arial, sans-serif;
+			}
+
+			table,
+			tr,
+			td,
+			th {
+				border-collapse: collapse;
+				border: 1px solid #ccc;
+			}
+
+			td,
+			th {
+				padding: 5px;
+			}
+
+			a {
+				display: inline-block;
+				margin: 5px;
+				cursor: pointer;
+				color: blue;
+			}
+			a:hover {
+				background: yellow;
+			}
+
+			input,
+			textarea,
+			select {
+				display: inline-block;
+				margin: 5px;
+				vertical-align: top;
+			}
+
+			select,
+			input,
+			textarea {
+				padding: 5px;
+			}
+
+        </style>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    </head>
+    <body>
+
+        <form>
+			<input name="id" data-regexp="^.*$" type="hidden">
+			<input name="index" data-regexp="^.*$" type="hidden">
+			<input name="created" data-regexp="^.*$" type="hidden">
+			<input name="updated" data-regexp="^.*$" type="hidden">
+			<input name="input" type="text" placeholder="input">
+			<textarea name="textarea" placeholder="textarea"></textarea>
+			<select name="select">
+				<option value="" selected>select your option</option>
+				<option value="1">option 1</option>
+				<option value="2">option 2</option>
+				<option value="3">option 3</option>
+				<option value="4">option 4</option>
+				<option value="5">option 5</option>
+			</select>
+			<input name="checkbox" type="checkbox">
+			<input type="submit" value="submit">
+			<input type="reset" value="reset">
+        </form>
+
+        <table>
+			<thead>
+				<tr>
+					<th id="id">id</th>
+					<th id="index">index</th>
+					<th id="created">created</th>
+					<th id="updated">updated</th>
+					<th id="input">input</th>
+					<th id="textarea">textarea</th>
+					<th id="select">select</th>
+					<th id="checkbox">checkbox</th>
+					<th>action</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+
+        <script>
+
+			var ongoing = false;
+
+			var db = {
+				send : (event, data) => {
+					if (ongoing === true) return false;
+					ongoing = true;
+
+					$.ajax({
+						method: "POST",
+						dataType: "json",
+						url: "/post",
+						data: JSON.stringify({
+							event : event,
+							data : data
+						})
+					}).done((e) => {
+						form.reset();
+						console.log(event);
+						console.log(e);
+
+						ongoing = false;
+					});
+				},
+			};
+
+            var form = {
+				get: () => {
+					var data = {};
+
+					if (new RegExp($('[name="id"]').data('regexp')).test($('[name="id"]').val())) data['id'] = $('[name="id"]').val();
+					if (new RegExp($('[name="index"]').data('regexp')).test($('[name="index"]').val())) data['index'] = $('[name="index"]').val();
+					if (new RegExp($('[name="created"]').data('regexp')).test($('[name="created"]').val())) data['created'] = $('[name="created"]').val();
+					if (new RegExp($('[name="updated"]').data('regexp')).test($('[name="updated"]').val())) data['updated'] = $('[name="updated"]').val();
+					data['input'] = $('[name="input"]').val();
+					data['textarea'] = $('[name="textarea"]').val();
+					data['select'] = $('[name="select"]').val();
+					data['checkbox'] = $('[name="checkbox"]').prop('checked') === true ? "1" : "0";
+
+					return data;
+				},
+				set: (data) => {
+
+					("id" in data) ? $('[name="id"]').val(data['id']) : $('[name="id"]').val("");
+					("index" in data) ? $('[name="index"]').val(data['index']) : $('[name="index"]').val("");
+					("created" in data) ? $('[name="created"]').val(data['created']) : $('[name="created"]').val("");
+					("updated" in data) ? $('[name="updated"]').val(data['updated']) : $('[name="updated"]').val("");
+					("input" in data) ? $('[name="input"]').val(data['input']) : $('[name="input"]').val("");
+					("textarea" in data) ? $('[name="textarea"]').val(data['textarea']) : $('[name="textarea"]').val("");
+					("select" in data) ? $('[name="select"]').val(data['select']) : $('[name="select"]').val("");
+                    data['checkbox'] === "1" ? $('[name="checkbox"]').prop('checked', true) : $('[name="checkbox"]').prop('checked', false);
+
+                },
+				submit: () => {
+					var data = form.get();
+
+					if (data.id && data.index) db.send("update", data);
+					else db.send("create", data);
+
+				},
+				reset: () => {
+					form.set({
+						'id': "",
+						'index': "",
+						'created': "",
+						'updated': "",
+						'input': "",
+						'textarea': "",
+						'select': "",
+						'checkbox': "0",
+					});
+				}
+            };
+
+            var table = {
+				row : {
+					create : (data) => {
+						var tr = $('<tr id="'+data['id']+'"></tr>').appendTo('table > tbody');
+						$('<td data-field="id"></td>').appendTo(tr);
+						$('<td data-field="index"></td>').appendTo(tr);
+						$('<td data-field="created"></td>').appendTo(tr);
+						$('<td data-field="updated"></td>').appendTo(tr);
+						$('<td data-field="input"></td>').appendTo(tr);
+						$('<td data-field="textarea"></td>').appendTo(tr);
+						$('<td data-field="select"></td>').appendTo(tr);
+						$('<td data-field="checkbox"></td>').appendTo(tr);
+
+						var td = $('<td data-field="action"></td>').appendTo(tr);
+						$('<a>update</a>').appendTo(td);
+						$('<a>delete</a>').appendTo(td);
+						$('<a>check/uncheck</a>').appendTo(td);
+
+						table.row.update(data);
+					},
+					read : (id) => {
+						return {
+							id : $('#'+id+' > td[data-field="id"]'),
+							index : $('#'+id+' > td[data-field="index"]'),
+							created : $('#'+id+' > td[data-field="created"]'),
+							updated : $('#'+id+' > td[data-field="updated"]'),
+							input : $('#'+id+' > td[data-field="input"]'),
+							textarea : $('#'+id+' > td[data-field="textarea"]'),
+							select : $('#'+id+' > td[data-field="select"]'),
+							checkbox : $('#'+id+' > td[data-field="checkbox"]'),
+							actions : {
+								update : $('#'+id+' > td[data-field="action"] > a').eq(0),
+								delete : $('#'+id+' > td[data-field="action"] > a').eq(1),
+								switch : $('#'+id+' > td[data-field="action"] > a').eq(2),
+							},
+						};
+					},
+					update : (data) => {
+
+						var cells = table.row.read(data["id"]);
+
+						cells.id.text(data["id"]);
+						cells.index.text(data["index"]);
+						cells.created.text(data["created"]);
+						cells.updated.text(data["updated"]);
+						cells.input.text(data["input"]);
+						cells.textarea.text(data["textarea"]);
+						cells.select.text(data["select"]);
+						cells.checkbox.text(data["checkbox"]);
+
+						cells.actions.update.unbind();
+						cells.actions.update.on('click', (e) => {
+							e.preventDefault();
+
+							form.set(data);
+						});
+
+						cells.actions.delete.unbind();
+						cells.actions.delete.on('click', (e) => {
+							e.preventDefault();
+
+							db.send("delete", data);
+						});
+
+						cells.actions.switch.unbind();
+						cells.actions.switch.on('click', (e) => {
+							e.preventDefault();
+
+							var copy = data;
+							copy.checkbox = copy.checkbox === "1" ? "0" : "1";
+
+							db.send("update", copy);
+						});
+
+					},
+					delete : (id) => {
+						$('#'+id).remove();
+					}
+				},
+				update: (data) => {
+					for (var i in data) {
+						if ($('#'+data[i]["id"]).length) {
+							table.row.update(data[i]);
+						}
+						else {
+							table.row.create(data[i]);
+						}
+					}
+				},
+				sort: (column, compare) => {
+					var sorting = true,
+					a,
+					b,
+					i,
+					rows;
+					if (!compare) {
+						var compare = (a, b) => {
+							if (a == b) {
+								return 0;
+							}
+							return (a > b) ? 1 : -1;
+						}
+					}
+					while (sorting) {
+						sorting = false;
+						rows = $('table > tbody > tr');
+						for (i = 0; i < rows.length - 1; i++) {
+							a = $(rows[i]).find("td")[column].textContent.toLowerCase(),
+							b = $(rows[i + 1]).find("td")[column].textContent.toLowerCase();
+							if (compare(a, b) < 0) {
+								$(rows[i + 1]).insertBefore($(rows[i]));
+								sorting = true;
+								break;
+							}
+						}
+					}
+				}
+			};
+
+			var ws = new WebSocket("ws://10.0.0.14:12346");
+			ws.onopen = (e) => {
+				console.log("connexion established");
+				ws.send("client ready");
+			};
+			ws.onmessage = (e) => {
+
+				var res = JSON.parse(e.data);
+
+				console.log(res);
+
+				var format = (res) => {
+					var data = [];
+					res.data.body.hits.hits.forEach(function(v, i) {
+						v._source.id = v._id;
+						v._source.index = v._index;
+						data.push(v._source);
+					});
+					return data;
+				}
+
+				if (res.event === "hydrate") {
+					$('table > tbody').empty();
+				}
+
+				if (res.event === "hydrate" || res.event === "create" || res.event === "update") {
+					table.update(format(res));
+				}
+
+				if (res.event === "delete") {
+					console.log(res.data);
+					table.row.delete(res.data.body._id);
+				}
+
+				table.sort(3);
+
+			};
+			ws.onclose = (e) => {
+				console.log("server disconnected");
+			};
+
+			$('form').on('submit', (e) => {
+                e.preventDefault();
+				form.submit();
+			});
+			$('form').on('reset', (e) => {
+				e.preventDefault();
+				form.reset();
+            });
+
+        </script>
+    </body>
+</html>
