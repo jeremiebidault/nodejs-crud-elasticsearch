@@ -73,7 +73,7 @@
 			<input type="reset" value="reset">
         </form>
 
-        <table>
+        <table data-sort-col="updated" data-sort-order="desc" data-max-rows="4">
 			<thead>
 				<tr>
 					<th id="id">id</th>
@@ -260,6 +260,7 @@
 					b,
 					i,
 					rows;
+					// default : desc compare
 					if (!compare) {
 						var compare = (a, b) => {
 							if (a == b) {
@@ -291,13 +292,11 @@
 			};
 			ws.onmessage = (e) => {
 
-				var res = JSON.parse(e.data);
+				let res = JSON.parse(e.data);
 
-				console.log(res);
-
-				var format = (res) => {
-					var data = [];
-					res.data.body.hits.hits.forEach(function(v, i) {
+				let format = (res) => {
+					let data = [];
+					res.data.body.hits.hits.forEach((v, i) => {
 						v._source.id = v._id;
 						v._source.index = v._index;
 						data.push(v._source);
@@ -314,11 +313,32 @@
 				}
 
 				if (res.event === "delete") {
-					console.log(res.data);
 					table.row.delete(res.data.body._id);
 				}
 
-				table.sort(3);
+				let col = $('table > thead > tr > th').index($('#'+$('table').data('sort-col'))),
+				order = $('table').data('sort-order');
+				if (col > -1) {
+					switch (order) {
+						case 'asc':
+							table.sort(col, (a, b) => {
+								if (a == b) {
+									return 0;
+								}
+								return (a < b) ? 1 : -1;
+							});
+						break;
+						default:
+							table.sort(col);
+						break;
+					}
+				}
+
+				let max = $('table').data('max-rows');
+				if (max > 0) {
+					$('table > tbody > tr').show();
+					$('table > tbody > tr').slice(max).hide();
+				}
 
 			};
 			ws.onclose = (e) => {

@@ -52,7 +52,7 @@ http.createServer((request, response) => {
 
 			if (query.event && query.event === "create") {
 				client.cat.indices({
-					"index" : "cr*",
+					"index" : "crud*",
 					"format": "json",
 					"h" : "index,creation.date.string",
 					"s" : "creation.date.string",
@@ -136,7 +136,7 @@ http.createServer((request, response) => {
 						}));
 
 						client.search({
-							"index" : "crud",
+							"index" : query.data.index,
 							"body" : {
 								"query" : {
 									"match" : {
