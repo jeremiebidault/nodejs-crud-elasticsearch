@@ -95,17 +95,17 @@ http.createServer((request, response) => {
 										}));
 									}
 									else {
-										console.log(err);
+										console.error(err);
 									}
 								});
 							}
 							else {
-								console.log(err);
+								console.error(err);
 							}
 						});
 					}
 					else {
-						console.log(err);
+						console.error(err);
 					}
 				});
 			}
@@ -152,12 +152,12 @@ http.createServer((request, response) => {
 								}));
 							}
 							else {
-								console.log(err);
+								console.error(err);
 							}
 						});
 					}
 					else {
-						console.log(err);
+						console.error(err);
 					}
 				});
 			}
@@ -181,11 +181,10 @@ http.createServer((request, response) => {
 						}));
 					}
 					else {
-						console.log(err);
+						console.error(err);
 					}
 				});
 			}
-
 
         });
 
@@ -267,7 +266,7 @@ setInterval(() => {
 			}));
 		}
 		else {
-			console.log(err);
+			console.error(err);
 		}
 	});
 }, 5000);

@@ -285,66 +285,6 @@
 				}
 			};
 
-			var ws = new WebSocket("ws://10.0.0.14:12346");
-			ws.onopen = (e) => {
-				console.log("connexion established");
-				ws.send("client ready");
-			};
-			ws.onmessage = (e) => {
-
-				let res = JSON.parse(e.data);
-
-				let format = (res) => {
-					let data = [];
-					res.data.body.hits.hits.forEach((v, i) => {
-						v._source.id = v._id;
-						v._source.index = v._index;
-						data.push(v._source);
-					});
-					return data;
-				}
-
-				if (res.event === "hydrate") {
-					$('table > tbody').empty();
-				}
-
-				if (res.event === "hydrate" || res.event === "create" || res.event === "update") {
-					table.update(format(res));
-				}
-
-				if (res.event === "delete") {
-					table.row.delete(res.data.body._id);
-				}
-
-				let col = $('table > thead > tr > th').index($('#'+$('table').data('sort-col'))),
-				order = $('table').data('sort-order');
-				if (col > -1) {
-					switch (order) {
-						case 'asc':
-							table.sort(col, (a, b) => {
-								if (a == b) {
-									return 0;
-								}
-								return (a < b) ? 1 : -1;
-							});
-						break;
-						default:
-							table.sort(col);
-						break;
-					}
-				}
-
-				let max = $('table').data('max-rows');
-				if (max > 0) {
-					$('table > tbody > tr').show();
-					$('table > tbody > tr').slice(max).hide();
-				}
-
-			};
-			ws.onclose = (e) => {
-				console.log("server disconnected");
-			};
-
 			$('form').on('submit', (e) => {
                 e.preventDefault();
 				form.submit();
@@ -353,6 +293,77 @@
 				e.preventDefault();
 				form.reset();
             });
+
+			var connect = () => {
+				var ws = new WebSocket('ws://10.0.0.14:12346');
+				ws.onopen = () => {
+					console.log("server connection established");
+					ws.send("client ready");
+				};
+
+				ws.onmessage = (e) => {
+					let res = JSON.parse(e.data);
+
+					let format = (res) => {
+						let data = [];
+						res.data.body.hits.hits.forEach((v, i) => {
+							v._source.id = v._id;
+							v._source.index = v._index;
+							data.push(v._source);
+						});
+						return data;
+					}
+
+					if (res.event === "hydrate") {
+						$('table > tbody').empty();
+					}
+
+					if (res.event === "hydrate" || res.event === "create" || res.event === "update") {
+						table.update(format(res));
+					}
+
+					if (res.event === "delete") {
+						table.row.delete(res.data.body._id);
+					}
+
+					let col = $('table > thead > tr > th').index($('#'+$('table').data('sort-col'))),
+					order = $('table').data('sort-order');
+					if (col > -1) {
+						switch (order) {
+							case 'asc':
+								table.sort(col, (a, b) => {
+									if (a == b) {
+										return 0;
+									}
+									return (a < b) ? 1 : -1;
+								});
+							break;
+							default:
+								table.sort(col);
+							break;
+						}
+					}
+
+					let max = $('table').data('max-rows');
+					if (max > 0) {
+						$('table > tbody > tr').show();
+						$('table > tbody > tr').slice(max).hide();
+					}
+				};
+
+				ws.onclose = (e) => {
+					console.log('server disconnected, connection attempt in 5 second.', e);
+					setTimeout(() => {
+						connect();
+					}, 5000);
+				};
+
+				ws.onerror = (e) => {
+					console.error('server encountered error, closing connection', e);
+					ws.close();
+				};
+			}
+			connect();
 
         </script>
     </body>
